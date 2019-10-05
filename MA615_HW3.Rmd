@@ -273,7 +273,21 @@ overlap <- inner_join(boy, girl, by = "name")
 overlap <- unique(overlap)
 overlap
 ```  
-
+  
+What names were used in the 19th century but have not been used in the 21sth century?  
+```{r}
+names_19 <- filter(babynames,babynames$year<1900)
+names_19 <- unique(names_19$name)
+names_21 <- filter(babynames,babynames$year>=2000)
+names_21 <- unique(names_21$name)
+name_list <- c()
+for (i in names_19){
+  if (sum(grep(i, names_21))==0){
+    name_list <- c(name_list,i)
+    }
+} 
+unique(name_list)  
+```
 
 Produce a chart that shows the relative frequency of the names “Donald”, “Hilary”, “Hillary”, “Joe”, “Barrack”, over the years 1880 through 2017.  
 ```{r}
