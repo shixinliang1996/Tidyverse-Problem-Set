@@ -236,27 +236,33 @@ Produce a tabble that displays the five most popular boy names and girl names in
 # boy
 # 1880
 boy_1880 <- filter(babyn, babyn$year == 1880 & babyn$sex == "M")
-boy_1880$name[1:5]
+boy_name_1880 <- boy_1880$name[1:5]
 girl_1880 <- filter(babyn, babyn$year == 1880 & babyn$sex == "F")
-girl_1880$name[1:5]
+girl_name_1880 <- girl_1880$name[1:5]
 
 # 1920
 boy_1920 <- filter(babyn, babyn$year == 1920 & babyn$sex == "M")
-boy_1920$name[1:5]
+boy_name_1920 <- boy_1920$name[1:5]
 girl_1920 <- filter(babyn, babyn$year == 1920 & babyn$sex == "F")
-girl_1920$name[1:5]
+girl_name_1920 <- girl_1920$name[1:5]
 
 # 1960
 boy_1960 <- filter(babyn, babyn$year == 1960 & babyn$sex == "M")
-boy_1960$name[1:5]
+boy_name_1960 <- boy_1960$name[1:5]
 girl_1960 <- filter(babyn, babyn$year == 1960 & babyn$sex == "F")
-girl_1960$name[1:5]
+girl_name_1960 <- girl_1960$name[1:5]
 
 # 2000
 boy_2000 <- filter(babyn, babyn$year == 2000 & babyn$sex == "M")
-boy_2000$name[1:5]
+boy_name_2000 <- boy_2000$name[1:5]
 girl_2000 <- filter(babyn, babyn$year == 2000 & babyn$sex == "F")
-girl_2000$name[1:5]
+girl_name_2000 <- girl_2000$name[1:5]
+
+gender_year <- c("1st", "2nd", "3rd", "4th", "5th")
+five_popular_names <- rbind(gender_year, boy_name_1880, girl_name_1880, 
+                            boy_name_1920, girl_name_1920, boy_name_1960, girl_name_1960, 
+                            boy_name_2000, girl_name_2000)  
+knitr::kable(five_popular_names)  
 ```  
 
 What names overlap boys and girls?  
@@ -267,6 +273,7 @@ overlap <- inner_join(boy, girl, by = "name")
 overlap <- unique(overlap)
 overlap
 ```  
+
 
 Produce a chart that shows the relative frequency of the names “Donald”, “Hilary”, “Hillary”, “Joe”, “Barrack”, over the years 1880 through 2017.  
 ```{r}
