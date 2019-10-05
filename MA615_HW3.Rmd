@@ -1,0 +1,281 @@
+---
+title: "MA615 Tidyverse Problem Set"
+author: "Shixin Liang"
+date: "10/3/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)                ## loading the entire knitr package
+library(ggplot2)              ## the only tidyverse library you need is ggplot2
+library(esquisse)             ## use esquisse to setup the basic plots
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+
+library(kableExtra)
+library(magrittr)
+knitr::opts_chunk$set(echo = FALSE)
+```
+  
+  
+# Problem 1  
+```{r}
+library(gapminder)
+data(gapminder)
+```
+  
+How many continents are included in the data set?
+```{r}
+length(levels(gapminder$continent))
+```
+  
+How many countrys are included?
+```{r}
+length(levels(gapminder$country))
+```
+  
+How many countries per continent?
+```{r}
+#For Africa
+length(unique(gapminder$country[gapminder$continent=="Africa"]))
+#For Americas
+length(unique(gapminder$country[gapminder$continent=="Americas"]))
+#For Asia
+length(unique(gapminder$country[gapminder$continent=="Asia"]))
+#For Europe
+length(unique(gapminder$country[gapminder$continent=="Europe"]))
+#For Oceania
+length(unique(gapminder$country[gapminder$continent=="Oceania"]))
+```
+  
+A report showing the continents in the dataset, total population per continent, and GDP per capita.
+```{r}
+gapm <- as_tibble(gapminder)
+gapm$pop <-as.numeric(gapm$pop)
+# total population per continent
+total_pop <- gapm %>% 
+  count(continent, wt = pop)
+# GDP per capita
+total_GDP <- gapm %>% 
+  count(continent, wt = gdpPercap)
+
+total <- cbind(total_pop, total_GDP$n)
+knitr::kable(total)
+```
+
+Produce a well-labeled table that summarizes GDP per capita for the countries in each continent, contrasting the years 1952 and 2007.
+```{r}
+# calculate mean GDP for each continent
+gapm1 <- gapm %>% 
+    group_by(year, continent) %>% 
+          summarise(mean(gdpPercap))
+
+gapm1_1952 <- filter(gapm1, year == 1952)
+gapm1_2007 <- filter(gapm1, year == 2007)
+gapm1_1952_2007_table <- rbind(gapm1_1952, gapm1_2007)
+knitr::kable(gapm1_1952_2007_table)
+```  
+
+Product a plot that summarizes the same data as the table.  
+```{r}
+ggplot(gapm1_1952_2007_table, aes(year, `mean(gdpPercap)`)) + 
+  geom_line(aes(group = continent), colour = "grey50") + 
+  geom_point(aes(colour = continent))
+```  
+
+Which countries in the dataset have had periods of negative population growth?  
+Here are the countries:  
+```{r}
+pop_change <- gapminder$pop[2:length(gapminder$pop)] - gapminder$pop[1:(length(gapminder$pop)-1)]
+pop_change <- c(0, pop_change)
+new_gapm <- gapminder
+new_gapm$popular_change <- pop_change
+negative_grouth <- filter(new_gapm, new_gapm$popular_change <0)
+knitr::kable(negative_grouth)
+
+negative_grouth_countries <- unique(negative_grouth$country)
+negative_grouth_countries
+```  
+
+Which countries in the dataset have had the highest rate of growth in per capita GDP?
+```{r}
+GDP_change <- gapminder$gdpPercap[2:length(gapminder$pop)] - gapminder$gdpPercap[1:(length(gapminder$pop)-1)]
+GDP_change <- c(0, GDP_change)
+new_gapm$GDP_change <- GDP_change
+highest_rate <- filter(new_gapm, new_gapm$GDP_change == max(new_gapm$GDP_change))
+knitr::kable(highest_rate)
+```
+Kuwait had the highest rate.  
+
+  
+  
+# Problem 2  
+Product a plot the contracts the frequency of these four gendercombinations.
+```{r}
+library(AER)
+data("Fertility")
+fert <- unite(Fertility, g1g2, gender1, gender2)
+unique(as.factor(fert$g1g2))
+
+# Compute the frequency
+freq <- fert %>%
+  group_by(g1g2) %>%
+  summarise(counts = n())
+
+# Create the bar plot
+ggplot(freq, aes(x = g1g2, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3) 
+```  
+
+Are the frequencies different for women in their 20s and wemen who are older than 29?  
+```{r}
+fert_20 <- filter(fert, fert$age<30)
+fert_30 <- filter(fert, fert$age>=30)
+
+freq_20 <- fert_20 %>%
+  group_by(g1g2) %>%
+  summarise(counts = n())
+freq_20$age <- "20s"
+freq_30 <- fert_30 %>%
+  group_by(g1g2) %>%
+  summarise(counts = n())
+freq_30$age <- "30s"
+freq_2030 <- rbind(freq_20,freq_30)
+knitr::kable(freq_2030)
+```
+The frequencies for women who are older than 29 are higher.  
+
+  
+Produce a plot that contrasts the frequency of having more than two children by race and ethnicity.  
+```{r}
+fert_race <- unite(Fertility, race, afam, hispanic, other)
+fert_race$race[fert_race$race == "no_no_no"] <- "other"
+fert_race$race[fert_race$race == "no_no_yes"] <- "Caucasian"
+fert_race$race[fert_race$race == "yes_no_no"] <- "African-American"
+fert_race$race[fert_race$race == "no_yes_no"] <- "Hispanic"
+fert_race$race[fert_race$race == "yes_yes_no"] <- "African-American-Hispanic"
+fert_race$race[fert_race$race == "no_yes_yes"] <- "Hispanic-Caucasian"
+unique(as.factor(fert_race$race))
+
+fert_race$morekids <- as.character(fert_race$morekids)
+fert_race$morekids[fert_race$morekids == "no"] <- 0
+fert_race$morekids[fert_race$morekids == "yes"] <- 1
+freq_race <- fert_race %>%
+  group_by(race) %>%
+  summarise(counts = n())
+
+ggplot(freq_race, aes(x = race, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3) 
+
+```
+  
+  
+# Problem 3
+```{r}
+library(stringr)
+data(mtcars)
+data(mpg)
+```  
+
+How many times does the letter “e” occur in mtcars rownames?  
+```{r}
+mtc_rownames <- rownames(mtcars)
+pattern <- "e"
+grep(pattern, mtc_rownames, value = TRUE)
+occur_time <- sum(str_count(mtc_rownames, pattern))
+occur_time
+```  
+
+How many cars in mtcars have the brand Merc?  
+```{r}
+Merc_number <- sum(str_count(mtc_rownames, "Merc"))
+Merc_number
+```  
+
+How many cars in mpg have the brand(“manufacturer” in mpg) Merc?  
+```{r}
+mercury_number <- sum(str_count(mpg$manufacturer, "merc"))
+mercury_number
+```  
+
+Contrast the mileage data for Merc cars as reported in mtcars and mpg. Use tables, plots, and a short explaination.  
+```{r}
+mtcars_location <-grep("Merc", mtc_rownames)
+mile_mtcars <- mtcars$mpg[c(mtcars_location)]
+
+mpg_location <-grep("merc", mpg$manufacturer)
+mile_mpg <- mpg$cty[c(mpg_location)]
+
+mile_data <- c(mile_mtcars, mile_mpg)
+length(mile_mtcars)
+mileage <- data.frame(mile_data)
+mileage$data_source <- mileage$mile_data
+mileage$data_source[1:length(mile_mtcars)] <- "mtcars"
+mileage$data_source[(length(mile_mtcars)+1):(length(mile_mtcars)+length(mile_mpg))] <- "mpg"
+mileage$observation <- 1:length(mileage$mile_data)
+ggplot(mileage, aes(observation, mile_data)) + 
+  geom_point(aes(colour = data_source))
+
+```
+The mileage data for Merc cars from  mpg  is smaller than those from mtcars. It is because the mileage data from mpg are mileage data in city, not in highway.  
+
+  
+  
+# Problem 4
+```{r}
+library(babynames)
+data(babynames)
+babyn <- as_tibble(babynames)
+```  
+
+Produce a tabble that displays the five most popular boy names and girl names in the years 1880,1920, 1960, 2000.  
+```{r}
+# boy
+# 1880
+boy_1880 <- filter(babyn, babyn$year == 1880 & babyn$sex == "M")
+boy_1880$name[1:5]
+girl_1880 <- filter(babyn, babyn$year == 1880 & babyn$sex == "F")
+girl_1880$name[1:5]
+
+# 1920
+boy_1920 <- filter(babyn, babyn$year == 1920 & babyn$sex == "M")
+boy_1920$name[1:5]
+girl_1920 <- filter(babyn, babyn$year == 1920 & babyn$sex == "F")
+girl_1920$name[1:5]
+
+# 1960
+boy_1960 <- filter(babyn, babyn$year == 1960 & babyn$sex == "M")
+boy_1960$name[1:5]
+girl_1960 <- filter(babyn, babyn$year == 1960 & babyn$sex == "F")
+girl_1960$name[1:5]
+
+# 2000
+boy_2000 <- filter(babyn, babyn$year == 2000 & babyn$sex == "M")
+boy_2000$name[1:5]
+girl_2000 <- filter(babyn, babyn$year == 2000 & babyn$sex == "F")
+girl_2000$name[1:5]
+```  
+
+What names overlap boys and girls?  
+```{r}
+boy <- subset(babynames, babynames$sex=="M", select = name)
+girl <- subset(babynames, babynames$sex=="F", select = name)
+overlap <- inner_join(boy, girl, by = "name")
+overlap <- unique(overlap)
+overlap
+```  
+
+Produce a chart that shows the relative frequency of the names “Donald”, “Hilary”, “Hillary”, “Joe”, “Barrack”, over the years 1880 through 2017.  
+```{r}
+five_name_freq <- filter(babynames, name == "Donald" | name == "Hilary" | name == "Hillary" | name == "Joe" | name == "Barrack" )
+five_name_data <- five_name_freq %>%
+  group_by(year, name) %>%
+  summarise(sum(n))
+
+ggplot(five_name_data, aes(year, `sum(n)`)) + 
+  geom_line(aes(group = name), colour = "grey50") + 
+  geom_point(aes(colour = name))
+```
